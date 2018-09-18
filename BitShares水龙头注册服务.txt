@@ -1,0 +1,58 @@
+----------------------------------------------------------------------------------------------------------------------------------------------
+安装依赖库(mysql数据库 )
+----------------------------------------------------------------------------------------------------------------------------------------------
+注意，记得安装sql时的root用户密码
+sudo apt-get install mysql-server libmysqlclient-dev  libreadline-dev
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+安装ruby环境 rbenv
+----------------------------------------------------------------------------------------------------------------------------------------------
+让我们安装rbenv，我们将使用它来安装和管理我们的Ruby安装。 
+首先，更新apt-get：
+$ sudo apt-get update
+
+使用apt-get安装rbenv和Ruby依赖关系
+$ sudo apt-get install git-core curl zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev libcurl4-openssl-dev python-software-properties libffi-dev
+
+现在我们准备安装rbenv了。最简单的方法就是运行这些命令，就像使用Ruby的用户一样：
+$ cd
+$ git clone git://github.com/sstephenson/rbenv.git .rbenv
+$ echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bash_profile
+$ echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
+$
+$ git clone git://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+$ echo 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"' >> ~/.bash_profile
+$ source ~/.bash_profile
+
+这会将rbenv安装到您的主目录中，并设置适当的环境变量，使rbenv能够成为Ruby的活动版本。
+现在我们准备安装Ruby。
+安装Ruby
+请使用以下命令进行安装：
+$ rbenv install -v 2.2.3
+$ rbenv global 2.2.3
+
+rbenv install -v 2.2.3 可用来选择版本 
+rbenv global 2.2.3设置默认活动版本是2.2.3 
+如果我们想安装2.4版本相应的把版本号改为2.4，默认活动版本也可以改 。
+
+使用以下命令验证Ruby是否正确安装：
+$ ruby -v
+
+安装捆绑软件gem来管理您的应用程序依赖关系：
+$ gem install bundler
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+下载水龙头代码
+----------------------------------------------------------------------------------------------------------------------------------------------
+git clone https://github.com/bitshares/faucet
+cd faucet
+bundle
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+

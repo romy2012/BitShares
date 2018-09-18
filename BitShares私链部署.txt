@@ -1,0 +1,202 @@
+Windows 中部署 比特股 私链：
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+编译和安装 BitShares Core
+
+Windows编译流程比较复杂，暂时直接跳过编译直接下载比特股编译好的文件。
+https://github.com/bitshares/bitshares-core/releases
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+一、搭建并启动私链
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+下载最新的
+BitShares-Core-2.0.180823-Windows-x64-cli-tools.zip
+
+创建目录，解压 BitShares-Core-2.0.180823-Windows-x64-cli-tools.zip 到该目录，
+E:\BitShares
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+创建、编辑genesis文件、初始化证人节点
+
+创建
+genesis文件是用来定义区块链网络初始状态
+./witness_node --create-genesis-json=my-genesis.json
+
+编辑
+为了加快活跃证人的更新时间，将maintenance_interval修改如下(每5分钟更新一次)：
+"maintenance_interval": 600, 
+
+初始化证人节点
+创建了区块链data目录和在其下的config.ini文件[data/config.ini] 以及 获得区块链ID[Chain ID]
+./witness_node --data-dir data/ --genesis-json my-genesis.json --seed-nodes "[]"
+
+2512634ms th_a       main.cpp:266                  main                 ] Started BitShares node on a chain with 0 blocks.
+2512634ms th_a       main.cpp:267                  main                 ] Chain ID is dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+
+出现上面的信息时，意味着初始化过程完成，按ctrl+c关闭见证节点。
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+配置证人节点 data/config.ini
+
+p2p-endpoint = 0.0.0.0:8091
+seed-nodes = []
+rpc-endpoint = 0.0.0.0:8090
+genesis-json = my-genesis.json
+enable-stale-production = true
+
+# ID of witness controlled by this node (e.g. "1.6.5", quotes are required, may specify multiple times)
+witness-id = "1.6.1"
+witness-id = "1.6.2"
+witness-id = "1.6.3"
+witness-id = "1.6.4"
+witness-id = "1.6.5"
+witness-id = "1.6.6"
+witness-id = "1.6.7"
+witness-id = "1.6.8"
+witness-id = "1.6.9"
+witness-id = "1.6.10"
+witness-id = "1.6.11"
+
+说明：
+p2p-endpoint，指定开启的p2p监听端口，以方便其他节点连接，可以作为其他节点的seed-node。
+rpc-endpoint，指定开启的rpc监听端口，以方便cli-wallet和web钱包与证人节点连接。
+genesis-json，设置genesis.json的路径，通常只在创建新链生产创世区块时设置。
+enable-stale-production，让本节点无视区块链数据的时间，无论如何都生成区块数据。该字段通常只在创建新链生产创世区块时设为true。当已存在区块链时，一定要将本参数设为false或者不管，否则会因数据不完整导致分叉。
+seed-nodes，设置种子节点集合，以方便快速连接到区块链网络和同步区块链数据。在创建新链生产创世区块时设为空，以防止连接到正式网络（代码）中的默认种子节点。当连接已有区块链网络时，尽可能多的设置种子节点以加快同步速度。
+witness-id，用于授权本证人节点所代表的证人id产生区块，可指定多个。一般来说一个证人节点授权一个证人id，私链第一个节点指定了11个。
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+区块生产
+
+./witness_node --data-dir=data
+
+出现以下信息并生产区块
+*   ------- NEW CHAIN ------   *
+*   - Welcome to Graphene! -   *
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+以上完成了 搭建并启动私链
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+二、命令行钱包的使用
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+启动本地见证人节点
+命令行参数方式启动
+./witness_node --rpc-endpoint "127.0.0.1:8090" --enable-stale-production --data-dir=data --seed-nodes "[]" --genesis-json "my-genesis.json"
+
+配置方式启动
+./witness_node --data-dir=data
+
+查看监听是否成功
+wscat是一个nodejs开发的用来连接websocket的命令行工具
+安装
+npm install -g wscat
+使用
+wscat -c ws://127.0.0.1:8090
+
+使用钱包
+./cli_wallet --server-rpc-endpoint=ws://127.0.0.1:8090 --chain-id=dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+
+说明： 
+--wallet-file：指定钱包json文件，该文件用于保存本钱包中所有加密后的私钥； 
+--server-rpc-endpoint：rpc服务器终端地址，指定钱包要连接的区块链全节点所需要的协议、地址和端口； 
+--rpc-endpoint：指定命令行钱包要监听的websocket RPC的ip地址和端口号； 
+--rpc-http-endpoint：指定命令行钱包要监听的HTTP RPC的ip地址和端口号； 
+--chain-id：指定要连接的区块链ID。不指定的话，钱包连接到bitshares的正式链上。
+如：./cli_wallet --wallet-file=my-wallet.json --chain-id 7be1c10cbe48776d5c52ac2b2da8e259533fd9acff44e943d9efe69115c4bfa5　 --server-rpc-endpoint=ws://127.0.0.1:8090
+
+创建密码(密码为：11111111)
+new >>> set_password 11111111
+set_password 11111111
+null
+locked >>> 
+
+解锁新创建的钱包
+locked >>> unlock 11111111
+unlock 11111111
+null
+unlocked >>>
+
+导入账号(私钥)
+使用import_key命令将一个名为nathan的帐户导入到钱包(私钥导入到钱包)，但初始账户仍然是没有资金的。
+unlocked >>> import_key nathan 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+
+说明：
+nathan是在起源文件中定义的帐户名称。 如果您在创建my-genesies.json文件之后编辑了自己的文件，则可以在其中添加一个不同的名称。 
+5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3 是在config.ini文件中定义的私钥。
+
+导入资金
+账号(私钥)导入后，初始账户仍然是没有资金的。使用import_balance命令可以将这些资金免费(相对于转账需要付手续费来说的)导入钱包
+unlocked >>> import_balance nathan ["5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"] true
+
+查看账户信息
+unlocked >>> get_account nathan
+
+查看账户余额
+unlocked >>> list_account_balances nathan
+list_account_balances nathan
+10000000000 BTS
+
+创建新帐户
+创建一个新账户总是通过使用一个现有账户来完成 - 我们需要这个账户，因为有人（即注册商）必须为注册费用提供资金。 此外，注册服务商账户还要求具有终身成员（LTM）身份。 因此，我们需要将帐户nathan升级为LTM，然后才能继续创建其他帐户。 要升级到LTM，请使用upgrade_account命令：
+unlocked >>> upgrade_account nathan true
+由于已知的缓存问题，您需要在这个阶段重新启动CLI，否则它将不知道nathan已经升级了。按Ctrl-C停止命令启动它再次使用相同的命令之前，即：
+./witness_node --data-dir=data
+进入钱包
+./cli_wallet --server-rpc-endpoint=ws://127.0.0.1:8090 --chain-id=dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+查看是否升级成功
+get_account nathan
+看到"membership_expiration_date"已经从"1970-01-01T00:00:00" 变成了 "1969-12-31T23:59:59"，意味着升级成功了。
+使用nathan作为注册商注册一个帐户。 但首先我们需要掌握新账户的公钥。 通过使用suggest_brain_key命令来完成它：
+locked >>> suggest_brain_key
+suggest_brain_key
+{
+  "brain_priv_key": "BECURSE VALGOID DEFROCK GODKIN SWITHER WORTH SUIFORM DAKER IPSEAND UPPERER PSALM UNCAST DOTTILY BEFRIZ SCUT BRONC",
+  "wif_priv_key": "5KZmzKmP8869Tw26nBTtYzGM4vW55mH9R9ZTeK9wPiTeX495rbn",
+  "pub_key": "BTS7KuKh66CdWb1pTRg414ocVXGDQLnrRtJDd4srevt6MRmQPd8Gg"
+}
+
+通过create_account_with_brain_key命令注册帐户，并自动导入相应的私钥。
+register_account alpha BTS5s2iBiMeaCt96hoiAhQz94AqiPChTNF2YpYt6zJNNFJonhXPTF BTS5s2iBiMeaCt96hoiAhQz94AqiPChTNF2YpYt6zJNNFJonhXPTF nathan nathan 0 true
+
+转移资金给新账户
+transfer nathan alpha 100000 BTS "Here is some cash." true
+
+查看alpha账户余额
+unlocked >>> list_account_balances alpha
+list_account_balances alpha
+2000000000 BTS
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+以上完成了 命令行钱包的使用
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+ws://127.0.0.1:8090
+wscat -c ws://127.0.0.1:8090
+
+
+./cli_wallet -s wss://bitshares.openledger.info/ws
+./witness_node curl --data '{"jsonrpc": "2.0", "method": "get_chain_properties", "params": [], "id": 1}' http://127.0.0.1:8090/rpc && echo
+
+ws://127.0.0.1:8090
+curl http://localhost:8090 -d '{"jsonrpc": "2.0","method": "get_block",
+"params": [1],"id": 1}'
+
+curl --data '{"jsonrpc": "2.0", "method": "get_chain_properties", "params": [], "id": 1}' http://127.0.0.1:8090/rpc && echo
+curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [1], "id": 1}' http://127.0.0.1:8090/rpc
+
+get_block 3355
+curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [3355], "id": 1}' ws://127.0.0.1:8290
