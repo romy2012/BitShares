@@ -1,11 +1,11 @@
 Windows 中部署 比特股 私链：
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
-
 编译和安装 BitShares Core
-
+----------------------------------------------------------------------------------------------------------------------------------------------
 Windows编译流程比较复杂，暂时直接跳过编译直接下载比特股编译好的文件。
 https://github.com/bitshares/bitshares-core/releases
+----------------------------------------------------------------------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 一、搭建并启动私链
@@ -26,15 +26,19 @@ genesis文件是用来定义区块链网络初始状态
 ./witness_node --create-genesis-json=my-genesis.json
 
 编辑
-为了加快活跃证人的更新时间，将maintenance_interval修改如下(每5分钟更新一次)：
+为了加快活跃证人的更新时间，将maintenance_interval参数为600，这样10分钟就会更新witness：
 "maintenance_interval": 600, 
 
 初始化证人节点
 创建了区块链data目录和在其下的config.ini文件[data/config.ini] 以及 获得区块链ID[Chain ID]
-./witness_node --data-dir data/ --genesis-json my-genesis.json --seed-nodes "[]"
+#./witness_node --data-dir data/ --genesis-json my-genesis.json --seed-nodes "[]"
+命令行参数方式启动
+#./witness_node --rpc-endpoint "192.168.1.152:8090" --enable-stale-production --data-dir data --seed-nodes "[]" --genesis-json "my-genesis.json"
 
-2512634ms th_a       main.cpp:266                  main                 ] Started BitShares node on a chain with 0 blocks.
-2512634ms th_a       main.cpp:267                  main                 ] Chain ID is dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+./witness_node --data-dir data --genesis-json my-genesis.json
+
+267131ms th_a       main.cpp:266                  main                 ] Started BitShares node on a chain with 10826 blocks.
+267133ms th_a       main.cpp:267                  main                 ] Chain ID is dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
 
 出现上面的信息时，意味着初始化过程完成，按ctrl+c关闭见证节点。
 
@@ -42,9 +46,9 @@ genesis文件是用来定义区块链网络初始状态
 
 配置证人节点 data/config.ini
 
-p2p-endpoint = 0.0.0.0:8091
+p2p-endpoint = 192.168.1.152:8091
 seed-nodes = []
-rpc-endpoint = 0.0.0.0:8090
+rpc-endpoint = 192.168.1.152:8090
 genesis-json = my-genesis.json
 enable-stale-production = true
 
@@ -54,12 +58,7 @@ witness-id = "1.6.2"
 witness-id = "1.6.3"
 witness-id = "1.6.4"
 witness-id = "1.6.5"
-witness-id = "1.6.6"
-witness-id = "1.6.7"
-witness-id = "1.6.8"
-witness-id = "1.6.9"
-witness-id = "1.6.10"
-witness-id = "1.6.11"
+
 
 说明：
 p2p-endpoint，指定开启的p2p监听端口，以方便其他节点连接，可以作为其他节点的seed-node。
@@ -88,8 +87,9 @@ witness-id，用于授权本证人节点所代表的证人id产生区块，可指定多个。一般来说一个证
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
 启动本地见证人节点
+
 命令行参数方式启动
-./witness_node --rpc-endpoint "127.0.0.1:8090" --enable-stale-production --data-dir=data --seed-nodes "[]" --genesis-json "my-genesis.json"
+/witness_node --rpc-endpoint "192.168.1.152:8090" --enable-stale-production --data-dir data --seed-nodes "[]" --genesis-json "my-genesis.json"
 
 配置方式启动
 ./witness_node --data-dir=data
@@ -99,10 +99,25 @@ wscat是一个nodejs开发的用来连接websocket的命令行工具
 安装
 npm install -g wscat
 使用
-wscat -c ws://127.0.0.1:8090
+wscat -c ws://192.168.1.152:8090
 
 使用钱包
-./cli_wallet --server-rpc-endpoint=ws://127.0.0.1:8090 --chain-id=dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+./cli_wallet
+./cli_wallet --server-rpc-endpoint=ws://192.168.1.151:8090 --chain-id=dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f
+
+#./cli_wallet --wallet-file=my-wallet.json --chain-id dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f  --server-rpc-endpoint=ws://192.168.1.152:8090
+
+./cli_wallet -w my-wallet.json -s ws://127.0.0.1:8090 -H 127.0.0.1:8091
+上述命令使用 -w 参数指定钱包文件， -s 参数连接到 witness_node ， -H 参数开启钱包 API 服务
+
+钱包开启了 http rpc 方式的 API 服务时，可以通过 http rpc 方式调用所有钱包命令，效果与在钱包里输入命令相同。
+示例：
+curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [1], "id": 1}' http://192.168.1.152:8090/rpc
+即：method 传入命令名，params 数组传入参数清单。
+返回：
+{"id":1,"result":{"previous":"0000000000000000000000000000000000000000","timestamp":"2015-10-13T14:12:24","witness":"1.6.8","transaction_merkle_root":"0000000000000000000000000000000000000000","extensions":[],"witness_signature":"1f53542bb60f1f7a653bac70d6b1613e73b9adc952031e30e591e601dd60d493ba5c9a832e155ff0c40ea1dd53512e9f93bf65a8191497ea67d701bc2502f93af7","transactions":[],"block_id":"00000001b656820f72f6b28cda811778632d4998","signing_key":"BTS6ZQEFsPmG6jWspNDdZHkehNmPpG7gkSHkphmRZQWaJ2LrcaVSi","transaction_ids":[]}}
+
+如果执行成功，结果会有 result ，否则会有 error 。
 
 说明： 
 --wallet-file：指定钱包json文件，该文件用于保存本钱包中所有加密后的私钥； 
@@ -110,7 +125,7 @@ wscat -c ws://127.0.0.1:8090
 --rpc-endpoint：指定命令行钱包要监听的websocket RPC的ip地址和端口号； 
 --rpc-http-endpoint：指定命令行钱包要监听的HTTP RPC的ip地址和端口号； 
 --chain-id：指定要连接的区块链ID。不指定的话，钱包连接到bitshares的正式链上。
-如：./cli_wallet --wallet-file=my-wallet.json --chain-id 7be1c10cbe48776d5c52ac2b2da8e259533fd9acff44e943d9efe69115c4bfa5　 --server-rpc-endpoint=ws://127.0.0.1:8090
+如：./cli_wallet --wallet-file=my-wallet.json --chain-id 7be1c10cbe48776d5c52ac2b2da8e259533fd9acff44e943d9efe69115c4bfa5 --server-rpc-endpoint=ws://192.168.1.152:8090
 
 创建密码(密码为：11111111)
 new >>> set_password 11111111
@@ -165,14 +180,21 @@ suggest_brain_key
 
 通过create_account_with_brain_key命令注册帐户，并自动导入相应的私钥。
 register_account alpha BTS5s2iBiMeaCt96hoiAhQz94AqiPChTNF2YpYt6zJNNFJonhXPTF BTS5s2iBiMeaCt96hoiAhQz94AqiPChTNF2YpYt6zJNNFJonhXPTF nathan nathan 0 true
+register_account romy2019 BTS7Car6GmdcH4VroXfzixmN1vS87TwvfJdXQVM4F95eRQzqRUyw8 BTS7CkiEab6PWcv5YM1AoEF7tfhjBWUsrYQbyvcZyfxGzQWnENdKP nathan nathan 0 true
+
+["romy2019", "BTS7Car6GmdcH4VroXfzixmN1vS87TwvfJdXQVM4F95eRQzqRUyw8", "BTS7CkiEab6PWcv5YM1AoEF7tfhjBWUsrYQbyvcZyfxGzQWnENdKP", 
+
 
 转移资金给新账户
 transfer nathan alpha 100000 BTS "Here is some cash." true
+transfer nathan romy2019 100000 BTS "Here is some cash." true
 
 查看alpha账户余额
 unlocked >>> list_account_balances alpha
 list_account_balances alpha
 2000000000 BTS
+
+list_account_balances romy2018
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 以上完成了 命令行钱包的使用
@@ -180,23 +202,285 @@ list_account_balances alpha
 
 
 
+重启流程
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+配置.\data\config.ini
+p2p-endpoint = 192.168.1.152:8091
+rpc-endpoint = 192.168.1.152:8090
+
+启动节点
+./witness_node --data-dir=data
+运行钱包
+./cli_wallet
+解锁钱包
+unlock 11111111
+查看资产
+list_account_balances nathan
+
+查看ws是否已连通
+wscat -c ws://192.168.1.152:8090
+
+
+连接 bitshares-ui
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+E:\host\worksheet\bitshares-ui\app\stores\SettingsStore.js
+修改下该方法，连接自建节点时未初始化unit，会出错。
+
+    onUpdateUnits() {
+        //console.log(getUnits(this._getChainId()));
+        //this.defaults.unit = getUnits(this._getChainId());
+        this.defaults.unit = ["BTS", "USD", "CNY", "BTC", "EUR", "GBP"]
+        if (this.defaults.unit.indexOf(this.settings.get("unit")) === -1) {
+            this.settings = this.settings.set("unit", this.defaults.unit[0]);
+        }
+    }
+
+
+
+bitsharesjs要本地调试的话可以使用本地文件
+E:\host\worksheet\bitshares-ui\package.json
+dependencies中使用本地文件
+"bitsharesjs": "../bitsharesjs",
+
+
+
+./cli_wallet --wallet-file=my-wallet.json --chain-id dc5a7c9f97beff9e0a5364b5f8f7ecee4be69b4a48efd00a0c5b8f628708748f --server-rpc-endpoint=ws://192.168.1.153:8090
+
+wscat -c ws://192.168.1.153:8090
+no method with name 'get_account'
+
+{ "jsonrpc": "2.0", "id": 1 "method": "get_accounts", "params": [["1.2.0", "1.2.1"]],}
+
+{ "jsonrpc": "2.0", "id": 1 "method": "get_account", "params": [["1.2.0", "1.2.1"]],}
+
+call: [0, "get_account", ["romy2019"]]
+
+{"id":1, "method":"call", "params":[0,"get_account",[["romy2019"]]]}
+
+{"id":1, "method":"call", "params":[0,"get_accounts",[["romy2019"]]]}
+
+{"id":1, "method":"call", "params":[0,"get_accounts",[["romy2018"]]]}
 
 
 
 
-ws://127.0.0.1:8090
-wscat -c ws://127.0.0.1:8090
+
+https://github.com/bitshares/bitshares-core
 
 
-./cli_wallet -s wss://bitshares.openledger.info/ws
-./witness_node curl --data '{"jsonrpc": "2.0", "method": "get_chain_properties", "params": [], "id": 1}' http://127.0.0.1:8090/rpc && echo
+VBoxManage 扩容
+VBoxManage showhdinfo "F:\Ubuntu(64bit)\Ubuntu(64bit).vdi"
+set /a 1024*150
+VBoxManage modifymedium --resize 153600 "F:\Ubuntu(64bit)\Ubuntu(64bit).vdi"
 
-ws://127.0.0.1:8090
-curl http://localhost:8090 -d '{"jsonrpc": "2.0","method": "get_block",
-"params": [1],"id": 1}'
 
-curl --data '{"jsonrpc": "2.0", "method": "get_chain_properties", "params": [], "id": 1}' http://127.0.0.1:8090/rpc && echo
-curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [1], "id": 1}' http://127.0.0.1:8090/rpc
 
-get_block 3355
-curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [3355], "id": 1}' ws://127.0.0.1:8290
+
+
+
+安装依赖的工具
+sudo apt-get update
+sudo apt-get install autoconf cmake make automake libtool git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev
+
+编译脚本
+git clone https://github.com/bitshares/bitshares-core.git
+cd bitshares-core
+git checkout master # may substitute "master" with current release tag
+git submodule update --init --recursive
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
+make
+
+更新脚本(如果是旧版，更新脚本后重新编译)
+git remote set-url origin https://github.com/bitshares/bitshares-core.git
+git checkout master
+git remote set-head origin --auto
+git pull
+git submodule update --init --recursive # this command may fail
+git submodule sync --recursive
+git submodule update --init --recursive
+
+安装
+sudo make install
+或设置软链接
+ln -s programs/witness_node/witness_node /usr/local/bin/witness_node
+ln -s programs/cli_wallet/cli_wallet  /usr/local/bin/cli_wallet
+
+检查是否编译安装成功：
+cd .. && which witness_node cli_wallet
+
+
+
+
+
+
+创建目录，并切换到该目录
+mkdir -p bitshares_home && cd bitshares_home/
+
+创建和编辑genesis文件
+witness_node --create-genesis-json=my-genesis.json
+cat my-genesis.json
+vi my-genesis.json
+
+参数初始化设置
+my-genesis.json  设置 maintenance_interval 加快活跃证人的更新时间
+"maintenance_interval": 600,
+
+初始化证人节点
+witness_node --data-dir data/ --genesis-json my-genesis.json --seed-nodes "[]"
+
+2160541ms th_a       main.cpp:266                  main                 ] Started BitShares node on a chain with 0 blocks.
+2160541ms th_a       main.cpp:267                  main                 ] Chain ID is 922c03f83614e14b1915ff5c34a2b1d9a6ea2bd8bb5b86e0b5ff9d9f2cd5b582
+
+此时，完成了两件事：
+1、创建了区块链data目录和在其之下的config.ini文件。
+2、获得了区块链ID。将Chain ID另外保存起来，后面会用到。
+
+配置证人节点
+编辑 bitshares_home/data/config.ini
+
+p2p-endpoint = 0.0.0.0:31010
+seed-nodes = []
+rpc-endpoint = 0.0.0.0:38090
+genesis-json = my-genesis.json
+enable-stale-production = true
+
+# ID of witness controlled by this node (e.g. "1.6.5", quotes are required, may specify multiple times)
+witness-id = "1.6.1"
+witness-id = "1.6.2"
+witness-id = "1.6.3"
+witness-id = "1.6.4"
+witness-id = "1.6.5"
+witness-id = "1.6.6"
+witness-id = "1.6.7"
+witness-id = "1.6.8"
+witness-id = "1.6.9"
+witness-id = "1.6.10"
+witness-id = "1.6.11"
+
+设置说明：
+
+p2p-endpoint，指定开启的p2p监听端口，以方便其他节点连接，可以作为其他节点的seed-node。
+rpc-endpoint，指定开启的rpc监听端口，以方便cli-wallet和web钱包与证人节点连接。
+genesis-json，设置genesis.json的路径，通常只在创建新链生产创世区块时设置。
+enable-stale-production，让本节点无视区块链数据的时间，无论如何都生成区块数据。该字段通常只在创建新链生产创世区块时设为true。当已存在区块链时，一定要将本参数设为false或者不管，否则会因数据不完整导致分叉。
+seed-nodes，设置种子节点集合，以方便快速连接到区块链网络和同步区块链数据。在创建新链生产创世区块时设为空，以防止连接到正式网络（代码）中的默认种子节点。当连接已有区块链网络时，尽可能多的设置种子节点以加快同步速度。
+witness-id，用于授权本证人节点所代表的证人id产生区块，可指定多个。一般来说一个证人节点授权一个证人id，私链第一个节点指定了11个。
+
+开始区块生产
+witness_node --data-dir=data
+
+命令行钱包的使用
+
+创建钱包
+
+cli_wallet --wallet-file my-wallet.json --server-rpc-endpoint ws://192.168.1.120:38090 --rpc-endpoint 0.0.0.0:38099 --rpc-http-endpoint 0.0.0.0:38092 --chain-id 922c03f83614e14b1915ff5c34a2b1d9a6ea2bd8bb5b86e0b5ff9d9f2cd5b582
+
+钱包参数说明：
+下面对指令参数进行解释：
+--wallet-file：指定钱包json文件，该文件用于保存本钱包中所有加密后的私钥；
+--server-rpc-endpoint：rpc服务器终端地址，指定钱包要连接的区块链全节点所需要的协议、地址和端口；
+--rpc-endpoint：指定命令行钱包要监听的websocket RPC的ip地址和端口号；
+--rpc-http-endpoint：指定命令行钱包要监听的HTTP RPC的ip地址和端口号；
+--chain-id：指定要连接的区块链ID。不指定的话，钱包连接到bitshares的正式链上。
+
+创建密码并解锁钱包
+set_password 11111111
+unlock 11111111
+
+导入账号
+使用import_key命令将代码中默认的账户nathan导入钱包
+import_key nathan 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+
+说明：
+帐户名称是前面在genesies.json文件中设置的，私钥也是前面在config.ini文件中设置的。
+
+导入资金
+import_balance nathan ["5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"] true
+
+创建新帐户
+
+使用upgrade_account命令将nathan升级到LTM
+upgrade_account nathan true
+
+ctrl+c停止cli_wallet钱包并重启cli_wallet钱包
+witness_node --data-dir=data
+cli_wallet --wallet-file my-wallet.json --server-rpc-endpoint ws://127.0.0.1:8090 --chain-id 922c03f83614e14b1915ff5c34a2b1d9a6ea2bd8bb5b86e0b5ff9d9f2cd5b582
+
+
+cli_wallet --wallet-file=my-wallet.json --chain-id a38a5be60607d2a6d83bf170523e6a5acb2c18518d4071018893b4041ffd4a12 --server-rpc-endpoint=ws://127.0.0.1:8090
+
+unlock 11111111
+
+查看帐号
+get_account nathan
+查看资产
+list_account_balances alpha
+
+
+首先需要新帐户的公钥。可以通过suggest_brain_key命令来获得
+suggest_brain_key
+
+suggest_brain_key
+{
+  "brain_priv_key": "PINHOLD SPOFFY WHUTTER ASTREAM VITALS AXIATE LOOFAH UTOPIAN LINGER OILED RIBBER ESTATE ENLACE DECUPLE FARISH SIRE",
+  "wif_priv_key": "5Hycd4HgTonLzeG4nAcMpNnoYm2aAe1UB5BMR94ejk7rBC7t3DA",
+  "pub_key": "BTS4u9zthW8XCYYYmpdnYNARMJHpkZB9MGLmo2TEXoq4mbgVACQEQ"
+}
+
+{
+  "brain_priv_key": "BEFLEA WIRABLE CITIFY DARTOID TIREMAN DATER ARIENZO PELLAGE JARKMAN DORLOT REUNION UNTENTY HAVEL KNARK DOITED DISOBEY",
+  "wif_priv_key": "5HqREyCNH36iQjjBMDozwewi9u3iEVkfBP2yfvxR23QsbTr1McU",
+  "pub_key": "BTS5m8qJCJpLGkXHBT4b2dPDnqWjF1nX7BCLju5LcJ8vmpY1RRUGQ"
+}
+
+
+
+可以只使用公钥来注册一个名为romy2018的新帐户
+register_account romy2019 GPH6RzdNr8TRMsrWRsLR4yooeMQNMmWgtyVowrGcLntVHnpSnruyk GPH6RzdNr8TRMsrWRsLR4yooeMQNMmWgtyVowrGcLntVHnpSnruyk nathan nathan 0 true
+
+GPH6betMY6DHSLHCSKDZbA6FwgX8cBkri6fAxmhBzJvAJtxTLfAeY
+
+转移资金给新账户
+transfer nathan alpha 5888 BTS "here is some cash" true
+
+
+
+
+
+
+
+
+虚拟机 Oracle VM VirtualBox 、Ubantu安装遇到问题：
+1、双向复制
+1.1 设置>存储>控制器>勾选使用主机输入输出缓存
+1.2 设置>存储>控制器>虚拟硬盘>勾选固态驱动器
+1.3 界面>设备>安装增强功能
+
+2、ubuntu 16.04 安装Git
+2.1 桌面>右键打开终端
+sudo apt-get install git
+2.2 配置用户和邮箱
+$ git config --global user.name "romy"
+$ git config --global user.email "88688386@qq.com"
+
+
+
+
+
+
+
+
+
+
+
+
+
+npm rebuild node-sass
+
+
+
+
+
+

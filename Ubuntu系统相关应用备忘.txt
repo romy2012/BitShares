@@ -1,29 +1,497 @@
-在Ubuntu系统与Windows系统的文件相互复制： 
-第一步： sudo apt-get autoremove open-vm-tools 
-第二步：sudo apt-get install open-vm-tools-desktop 
-重启 
+安装 ubuntu 16.04.5
 
-ubuntu 16.04 安装git：
+安装增强功能
+
+安装git：
 sudo apt-get install git
-
 配置git用户名和邮箱：
-
-git config --global user.name "luoweiqiang"
+git config --global user.name "U88688386"
 git config --global user.email "88688386@qq.com"
 
-官方推荐使用ubuntu16.04版本
+安装nodejs：
+sudo apt-get install nodejs-legacy nodejs
 
-1、安装编译依赖的相关库
+安装npm：
+sudo apt-get install npm
+
+时间校准
+sudo timedatectl set-ntp false
+sudo apt-get install ntp
+
+设置 Network time on: yes
+sudo timedatectl set-ntp on
+
+设置 NTP synchronized: yes
+sudo timedatectl set-ntp on
+
+测试时间校准
+timedatectl
+
+##############################################################################################################################
+
+BitShares Core
+安装依赖：
 sudo apt-get update
-sudo apt-get install autoconf cmake git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev
+sudo apt-get install autoconf cmake make automake libtool git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev
 
-2、下载bitshares源代码编译
+构建脚本
 git clone https://github.com/bitshares/bitshares-core.git
 cd bitshares-core
-git checkout
+git checkout master
 git submodule update --init --recursive
-cmake -DBOOST_ROOT="$BOOST_ROOT" -DCMAKE_BUILD_TYPE=Release .
-make -j4
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
+make
 
-set SSL_CERT_FILE=E:/BitShares/cacert.pem
+同步更新
+git remote set-url origin https://github.com/bitshares/bitshares-core.git
+git checkout master
+git remote set-head origin --auto
+git pull
+git submodule update --init --recursive # this command may fail
+git submodule sync --recursive
+git submodule update --init --recursive
+
+安装
+sudo make install
+
+检查是否编译安装成功：
+cd .. && which witness_node cli_wallet
+
+创建目录，并切换到该目录
+mkdir -p witness && cd witness/
+witness_node --create-genesis-json=my-genesis.json --data-dir=data
+
+json参数说明：
+maintenance_interval：活跃证人更新时间
+"maintenance_interval": 800,
+
+witness_node -d data --seed-nodes [] --genesis-json my-genesis.json
+会生成 Chain ID is 301891befc4811ff0658ca445378e57a16273fdd88c54a6406ae7a621fbffeb6
+同时初始化目录，然后ctrl-c，退出程序，编辑config.ini，修改配置：
+
+######### 指定开启的p2p监听端口，以方便其他节点连接，可以作为其他节点的seed-node ########
+p2p-endpoint = 0.0.0.0:8010
+######### seed-nodes设置为空，否则会使用默认设置 ########
+seed-nodes = []     
+############# 指定开启的rpc监听端口，以方便cli-wallet和web钱包与证人节点连接 #########
+rpc-endpoint = 0.0.0.0:8090 
+######### 配置文件 #########
+genesis-json = my-genesis.json 
+########## 设置改false为true ##############
+enable-stale-production = true 
+########### 添加见证节点#########
+witness-id = "1.6.1" 
+witness-id = "1.6.2" 
+witness-id = "1.6.3" 
+witness-id = "1.6.4" 
+witness-id = "1.6.5" 
+witness-id = "1.6.6" 
+witness-id = "1.6.7" 
+witness-id = "1.6.8" 
+witness-id = "1.6.9" 
+witness-id = "1.6.10" 
+witness-id = "1.6.10" 
+
+开始区块生产
+witness_node -d data
+
+测试获取Chain-ID信息
+curl --data '{"jsonrpc": "2.0", "method": "get_chain_properties", "params": [], "id": 1}' http://192.168.0.119:8090/rpc
+
+Chain ID is b4104a9c3a6dc66af0d903c67dbc530bbc8fa7af156b9ac2182db78b8e167da5
+
+################## witness_node参数说明 ##################
+
+witness_node -h
+Graphene Witness Node:=》石墨烯见证人节点参数
+
+  -h [ --help ] 
+Print this help message and exit.
+
+  -d [ --data-dir ] arg (="witness_node_data_dir")
+Directory containing databases,configuration file, etc.
+=>保存见证节点的数据库，配置文件目录
+
+  --create-genesis-json arg
+Path to create a Genesis State at. If a well-formed JSON file exists at the path, it will be parsed and any missing fields in a Genesis State will be added, and any unknown fields will be removed. If no file or an invalid file is found, it will be replaced with an example Genesis State.
+=>创世状态的json文件目录，如果json文件存在，就解析创世状态，未知的节点将删除。如果没有文件存在或文件是不合法的。就会替换一个例子创世状态
+
+  --replay-blockchain
+Rebuild object graph by replaying all blocks
+=>重建所有图，通过重发区块的方式
+
+  --resync-blockchain
+Delete all blocks and re-sync with network from scratch
+=>删除所有区块，重新在网络同步
+
+  --force-validate
+Force validation of all transactions
+=>强制验证所有交易
+
+  --genesis-timestamp arg
+Replace timestamp from genesis.json with current time plus this many seconds (experts only!)
+=>用当前时间加上那么多秒，替换genesis.json的时间戳（仅专家使用）
+
+  --p2p-endpoint arg
+Endpoint for P2P node to listen on
+=》p2p网络监听节点，表示启动监听服务端ip端口
+
+  -s [ --seed-node ] arg
+P2P nodes to connect to on startup (may specify multiple times)
+=》p2p网络启动时监听节点（可重复定义），表示要连接的服务端ip端口
+
+  --seed-nodes arg
+JSON array of P2P nodes to connect to on startup
+=》p2p网络启动时监听节点的JSON数组，表示要连接的服务端ip端口
+
+  -c [ --checkpoint ] arg
+Pairs of [BLOCK_NUM,BLOCK_ID] that should be enforced as checkpoints.
+=》应该执行检查点
+
+  --rpc-endpoint [=arg(=127.0.0.1:8090)]
+Endpoint for websocket RPC to listen on
+=》给延迟节点，钱包节点使用的的rpc地址端口
+
+  --rpc-tls-endpoint [=arg(=127.0.0.1:8089)]
+Endpoint for TLS websocket RPC to listen on
+=》启动安全的，给延迟节点，钱包节点使用的的rpc地址端口
+
+  -p [ --server-pem ] [=arg(=server.pem)]
+The TLS certificate file for this server
+=》服务器证书
+
+  -P [ --server-pem-password ] arg
+Password for this certificate
+=》服务器密码
+
+  --genesis-json arg
+File to read Genesis State from
+=》创世状态的json文件
+
+  --dbg-init-key arg
+Block signing key to use for init  witnesses, overrides genesis file
+=》区块签名，初始化见证节点，覆盖创世文件
+
+  --api-access arg
+JSON file specifying API permissions
+=》API权限描述JSON文件
+
+Options for plugin witness:=》见证人参数
+  --enable-stale-production
+Enable block production, even if the  chain is stale.
+=>启动区块生成，即使链是旧的
+
+  --required-participation
+Percent of witnesses (0-99) that must  be participating in order to produce blocks
+=》产生区块必须达到的见证人参与百分比
+
+  -w [ --witness-id ] arg
+ID of witness controlled by this node  (e.g. "1.6.5", quotes are required, may specify multiple times)
+=》见证人id，可重复定义
+
+  --private-key arg (=["BTS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV","5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"])
+Tuple of [PublicKey, WIF private key] (may specify multiple times)
+=》私钥，元组[公钥，私钥]，可重复定义
+
+Options for plugin account_history:=》账户历史参数
+
+  --track-account arg
+Account ID to track history for (may specify multiple times)
+=》可追踪历史的账户ID，可重复定义
+
+  --partial-operations arg
+Keep only those operations in memory that are related to account history tracking
+=》在内存中保存，可追踪历史账户ID的操作
+
+  --max-ops-per-account arg
+Maximum number of operations per account will be kept in memory
+=》每个账户在内存中保存的最大操作个数
+
+Options for plugin market_history:=》市场历史参数
+  --bucket-size arg (=[15,60,300,3600,86400])
+Track market history by grouping orders into buckets of equal size measured in  seconds specified as a JSON array of  numbers
+=》将订单分组为相等大小的桶来跟踪市场历史记录，每秒json数组的个数
+
+  --history-per-size arg (=1000)
+How far back in time to track history  for each bucket size, measured in the  number of buckets (default: 1000)
+=》可追踪历史的桶的个数，默认1000个
+
+################## config.ini配置参数说明 ##################
+
+# Endpoint for P2P node to listen on
+# p2p-endpoint 为当前节点对外广播的端口号 如果将这行注释的话 witness_node 将随机创建一个端口使用 这里我们将端口设置为对全网公开的8010
+#若用127.0.0.1:8010则代表只只允许本地访问
+p2p-endpoint = 0.0.0.0:8010
+
+# P2P nodes to connect to on startup (may specify multiple times)
+# seed-node 代表着启动的时候连接的节点（若没有启动时希望连接节点，请不要将注释放开）
+# seed-node = 
+
+# JSON array of P2P nodes to connect to on startup
+#启动后连接的节点数组，如果不希望连接任何节点，请按下面的方法进行；否则请按照注释方法进行
+seed-nodes = []
+# seed-nodes = ["47.104.82.72:8092"] 
+
+# Pairs of [BLOCK_NUM,BLOCK_ID] that should be enforced as checkpoints.
+#这个命令对启动暂时是无用(用途为记录点，但具体细节还需要研究，暂时保持)
+# checkpoint = 
+
+# Endpoint for websocket RPC to listen on
+# 这个命令很重要，最终由这个端口决定着区块链网页的等等客户端的连接 这里我们开放全网8090端口 客户端通过ws://服务器ip:8090 连接 非ssl
+rpc-endpoint = 0.0.0.0:8090
+
+# Endpoint for TLS websocket RPC to listen on
+# 这个跟上面一样区别是这个是采用ssl证书的
+# rpc-tls-endpoint = 
+
+# The TLS certificate file for this server
+# ssl证书地址
+# server-pem = 
+
+# Password for this certificate
+# ssl证书密码
+# server-pem-password = 
+
+# File to read Genesis State from
+# 标志着见证节点从哪里获取创世文件 同命令行参数效果
+# genesis-json = 
+
+# Block signing key to use for init witnesses,
+overrides genesis file
+# 可以重写创世文件中的见证人签名，具体用途暂时还没有尝试
+# dbg-init-key = 
+
+# JSON file specifying API permissions
+# 允许客户端访问的api（一般是全部开放）
+# api-access = 
+
+# Space-separated list of plugins to activate
+# 挂载的接口
+# plugins = 
+
+# Enable block production, even if the chain is stale.
+# 这个比较重要，是否允许区块链节点产块，即使这个链被冻结（产生第1块或者长时间未使用），一般填true
+enable-stale-production = true
+
+# Percent of witnesses (0-99) that must be participating in order to produce blocks
+# 这个用途暂时未知
+required-participation = false
+
+# ID of witness controlled by this node (e.g. "1.6.5", quotes are required, may specify multiple times)
+# 当前节点控制的见证人id 格式 witness-id = "1.6.5" 可以添加多个
+# witness-id = 
+
+# Tuple of [PublicKey, WIF private key] (may specify multiple times)
+# 对应区块签名的公私钥对
+private-key = ["BTS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV","5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"]
+
+##############################################################################################################################
+
+创建钱包
+mkdir -p wallet && cd wallet
+
+启动
+cli_wallet --wallet-file=my-wallet.json --chain-id b4104a9c3a6dc66af0d903c67dbc530bbc8fa7af156b9ac2182db78b8e167da5 --server-rpc-endpoint=ws://192.168.0.119:8090 -u '' -p ''
+
+后台启动
+nohup cli_wallet --wallet-file=my-wallet.json --chain-id b4104a9c3a6dc66af0d903c67dbc530bbc8fa7af156b9ac2182db78b8e167da5 --server-rpc-endpoint=ws://192.168.0.119:8090 --rpc-http-endpoint=192.168.0.119:8093 &
+
+################## cli_wallet参数说明 ##################
+cli_wallet -h
+  -h [ --help ]                         Print this help message and exit.
+  -s [ --server-rpc-endpoint ] [=arg(=ws://127.0.0.1:8090)]
+Server websocket RPC endpoint=》连接见证人节点的websocket rpc地址
+
+  -u [ --server-rpc-user ] arg
+Server Username=》用户名
+
+  -p [ --server-rpc-password ] arg
+Server Password=》密码
+
+  -r [ --rpc-endpoint ] [=arg(=127.0.0.1:8091)]
+Endpoint for wallet websocket RPC to listen on=》给其他客户的监听的websocket rpc地址
+
+  -t [ --rpc-tls-endpoint ] [=arg(=127.0.0.1:8092)]
+Endpoint for wallet websocket TLS RPC 
+to listen on=》给其他客户的监听的rpc地址，安全版本
+
+  -c [ --rpc-tls-certificate ] [=arg(=server.pem)]
+PEM certificate for wallet websocket 
+TLS RPC=>服务器端证书
+
+  -H [ --rpc-http-endpoint ] [=arg(=127.0.0.1:8093)]
+Endpoint for wallet HTTP RPC to listen on=>给其他客户的监听的HTTP rpc地址
+
+  -d [ --daemon ]
+Run the wallet in daemon mode=>运行在守护模式
+
+  -w [ --wallet-file ] [=arg(=wallet.json)]
+wallet to load=》钱包的配置文件目录
+
+  --chain-id arg
+chain ID to connect to=>要连接的区块链ID
+
+#####################################################################################################################
+
+钱包参数说明：
+下面对指令参数进行解释：
+--wallet-file：指定钱包json文件，该文件用于保存本钱包中所有加密后的私钥；
+--server-rpc-endpoint：rpc服务器终端地址，指定钱包要连接的区块链全节点所需要的协议、地址和端口；
+--rpc-endpoint：指定命令行钱包要监听的websocket RPC的ip地址和端口号；
+--rpc-http-endpoint：指定命令行钱包要监听的HTTP RPC的ip地址和端口号；
+--chain-id：指定要连接的区块链ID。不指定的话，钱包连接到bitshares的正式链上。
+
+测试API服务
+curl -d '{"jsonrpc": "2.0", "method": "get_block", "params": [1], "id": 1}' http://192.168.0.119:8090/rpc
+curl --data '{"jsonrpc": "2.0", "method": "call", "params": [0, "get_accounts", [["1.2.0"]]], "id": 1}' http://192.168.0.119:38090/rpc
+curl --data '{"jsonrpc": "2.0", "method": "call", "params": ["database", "get_block", [10]], "id": 1}' http://192.168.0.119:38090/rpc
+
+wscat -c ws://192.168.0.119:38090
+
+创建密码并解锁钱包
+set_password 11111111
+unlock 11111111
+
+导入账号
+使用import_key命令将代码中默认的账户nathan导入钱包
+import_key nathan 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+
+说明：
+帐户名称是前面在genesies.json文件中设置的，私钥也是前面在config.ini文件中设置的。
+
+导入资金
+import_balance nathan ["5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"] true
+
+创建新帐户
+
+使用upgrade_account命令将nathan升级到LTM，升级后重启钱包
+upgrade_account nathan true
+
+ctrl+c停止cli_wallet钱包并重启cli_wallet钱包
+
+查看帐号
+get_account nathan
+查看资产
+list_account_balances nathan
+
+创建新帐户
+首先需要新帐户的公钥。可以通过suggest_brain_key命令来获得
+suggest_brain_key
+
+suggest_brain_key
+{
+  "brain_priv_key": "BEDEVIL STINE GOWL GRIMACE ALNAGE STAMNOS AHINT TAXATOR MESSIN UNDAM KHAN LAUR CAUBOGE DESMID LAYOUT BIDUOUS",
+  "wif_priv_key": "5KQ64mJfNigNu6Xx1Vwp1D2iusapSSD1uvKRE5YF4MjJZVsKztK",
+  "pub_key": "BTS5xWUuzxW3MoZJtCADVKxrcG3Bon1621QEVotdTjcFtpUxad87d"
+}
+
+可以只使用公钥来注册一个名为user2018的新帐户
+register_account user2018 BTS5wXi1UpCpMhoE96RhW5DuN5QjSyxPVumZraKC14eg3xidiqHrh BTS5wXi1UpCpMhoE96RhW5DuN5QjSyxPVumZraKC14eg3xidiqHrh nathan nathan 0 true
+
+转移资金给新账户
+transfer nathan user2018 188888 BTS "Here is some cash." true
+
+查看帐号
+get_account user2018
+查看资产
+list_account_balances user2018
+
+挂单
+sell_asset nathan 100 BTS 100 CNY 86400 true true
+
+抵押|借入
+borrow_asset nathan 100 CNY 100 true
+
+ws://192.168.0.119:8090
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.30.2/install.sh | bash
+重启窗口或重启ubuntu
+nvm install v9
+nvm use v9
+git clone https://github.com/bitshares/bitshares-ui.git
+cd bitshares-ui
+npm install
+npm start
+
+http://192.168.0.119:8080/
+
+git clone -b master https://github.com/bitshares/bitshares-ui.git
+
+
+修改 node_modules/bitsharesjs-ws 的 chainid：
+路径
+node_modules/bitsharesjs-ws/es/src/ChainConfig.js
+node_modules/bitsharesjs-ws/cjs/src/ChainConfig.js
+
+修改节点的地址和水龙头地址：
+路径
+app\api\apiConfig.js
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+1、安装依赖库(mysql数据库 ) 注意，记得安装sql时的root用户密码(暂设置为:pc11111)：
+sudo apt-get install mysql-server libmysqlclient-dev  libreadline-dev
+
+安装 phpmyadmin 方便查看管理(暂设置为:pc11111)：
+sudo apt-get install phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+安装后重启 ubuntu 即可访问
+http://192.168.0.119/phpmyadmin/
+
+2、使用rbenv安装ruby环境
+
+更新apt-get：
+$ sudo apt-get update
+
+使用apt-get安装rbenv和Ruby依赖：
+$ sudo apt-get install git-core curl zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev libcurl4-openssl-dev python-software-properties libffi-dev
+
+安装Ruby：
+cd ~
+git clone git://github.com/sstephenson/rbenv.git .rbenv
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+exec $SHELL
+
+git clone git://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+echo 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"' >> ~/.bashrc
+exec $SHELL
+
+git clone https://github.com/sstephenson/rbenv-gem-rehash.git ~/.rbenv/plugins/rbenv-gem-rehash
+rbenv install 2.2.3
+rbenv global 2.2.3
+ruby -v
+gem install bundler
+rbenv rehash
+
+3、下载编译水龙头代码
+git clone https://github.com/bitshares/faucet
+cd faucet
+sudo bundle
+
+4、faucet配置
+cp config/faucet-example.yml config/faucet.yml
+ws://192.168.0.119:38090
+nathan
+192.168.0.119
+
+5、secrets配置
+cp config/secrets-example.yml config/secrets.yml
+rake secret
+
+5、运行水龙头
+rails s -b 0.0.0.0
+
+http://192.168.0.119:3000/
+
+http://192.168.0.119:3000/api/v1/accounts
+
+
+
+p2p-endpoint = 0.0.0.0:8095
+rpc-endpoint = 0.0.0.0:8090
+ws://127.0.0.1:8090
 

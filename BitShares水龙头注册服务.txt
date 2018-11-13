@@ -1,13 +1,19 @@
 ----------------------------------------------------------------------------------------------------------------------------------------------
-安装依赖库(mysql数据库 )
+一、安装依赖库(mysql数据库 )
 ----------------------------------------------------------------------------------------------------------------------------------------------
 注意，记得安装sql时的root用户密码
 sudo apt-get install mysql-server libmysqlclient-dev  libreadline-dev
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
-安装ruby环境 rbenv
+二、安装nodejs
 ----------------------------------------------------------------------------------------------------------------------------------------------
-让我们安装rbenv，我们将使用它来安装和管理我们的Ruby安装。 
+sudo apt-get install nodejs-legacy nodejs
+sudo apt-get install npm
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+三、使用rbenv安装ruby环境
+----------------------------------------------------------------------------------------------------------------------------------------------
+2.1、让我们安装rbenv，我们将使用它来安装和管理我们的Ruby安装。 
 首先，更新apt-get：
 $ sudo apt-get update
 
@@ -19,14 +25,15 @@ $ cd
 $ git clone git://github.com/sstephenson/rbenv.git .rbenv
 $ echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bash_profile
 $ echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
-$
+
 $ git clone git://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
 $ echo 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"' >> ~/.bash_profile
 $ source ~/.bash_profile
 
 这会将rbenv安装到您的主目录中，并设置适当的环境变量，使rbenv能够成为Ruby的活动版本。
 现在我们准备安装Ruby。
-安装Ruby
+
+2.2、安装Ruby
 请使用以下命令进行安装：
 $ rbenv install -v 2.2.3
 $ rbenv global 2.2.3
@@ -38,11 +45,13 @@ rbenv global 2.2.3设置默认活动版本是2.2.3
 使用以下命令验证Ruby是否正确安装：
 $ ruby -v
 
-安装捆绑软件gem来管理您的应用程序依赖关系：
+2.3、安装捆绑软件gem来管理您的应用程序依赖关系：
 $ gem install bundler
 
+$ sudo gem install bundler && rbenv rehash
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
-下载水龙头代码
+三、下载水龙头代码
 ----------------------------------------------------------------------------------------------------------------------------------------------
 git clone https://github.com/bitshares/faucet
 cd faucet
@@ -50,9 +59,172 @@ bundle
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
+四、水龙头访问配置faucet.yml
+
+创建
+cp config/faucet-example.yml config/faucet.yml
+修改配置
+vim config/faucet.yml
+
+示例内容如下：
+
+cli_wallet_connection: ws://127.0.0.1:8099   //钱包开放的websocketurl，cli_wallet -r参数对应  ./cli_wallet --chain-id="a35368851451335a25ea894c9bf81831c4e7c39e56ce94700a7813700cadf701" -s ws://127.0.0.1:8090 -w wallet.json -r 127.0.0.1:8099   -H 127.0.0.1:8092  
+registrar_account: nathan                    //提供注册的推荐人用户名，本例子为在比特股环境搭建》已创建且升级为会员的用户名nathan
+referrer_percent: 50                               
+refcode_prefix: F01                                
+                                                   
+default_url: 127.0.0.1                       //水龙头对外访问的IP      
+default_port: 3000                           //水龙头对外访问的端口
+                                                   
+exception_notification:                            
+  sender_address: faucet@example.com               
+  exception_recipients: admin@example.com          
+                                                   
+smtp:                                              
+  address: address                                 
+  user_name: user                                  
+  password: password
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+五、密码种子文件secrets.yml(ruby on rails用到的密码种子配置文件)
+
+创建
+cp config/secrets-example.yml config/secrets.yml
+运行
+rake secret
+修改配置
+vim config/secrets.yml
+
+
+示例内容如下 (按需要改各个清空的密码种子)：
+
+development:                                          
+  secret_key_base: abcdefg123456                      
+                                                      
+test:                                                 
+  secret_key_base: abcdefg123456                      
+                                                      
+# Do not keep production secrets in the repository,   
+# instead read values from the environment.           
+production:                                           
+  secret_key_base: abcdefg123456
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+六、数据库配置
+
+6.1、修改配置
+vim config/database.yml
+
+示例内容如下：
+
+default: &default                    
+  adapter: mysql2                    
+  encoding: utf8                     
+  pool: 5                            
+  username: root           #数据库登录用户名                   
+  password:                #数据库登录密码，根据安装mysql时的填写
+  host: localhost          #数据库url          
+                                     
+development:                         
+  <<: *default                       
+  database: bitshares_faucet_dev     
+                                     
+test:                                
+  <<: *default                       
+  database: bitshares_faucet_test    
+                                     
+production:                          
+  <<: *default                       
+  database: bitshares_faucet
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+6.2、创建并初始化数据库
+
+rake db:create; rake db:migrate; rake db:seed
+RAILS_ENV=production bundle exec rake db:create db:schema:load
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+七、运行水龙头服务 （-b 0.0.0.0 -b，bind之意。是让本机以外的主机，能够访问水龙头服务）
+
+rails s -b 0.0.0.0
+
+pc@pc-VirtualBox:~/faucet$ rails s -b 0.0.0.0
+=> Booting WEBrick
+=> Rails 4.2.4 application starting in development on http://0.0.0.0:3000
+=> Run `rails server -h` for more startup options
+=> Ctrl-C to shutdown server
+Starting graphene websocket communication event-loop 'ws://192.168.1.153:8090'
+Established connection to 'ws://192.168.1.151:8090'
+[2018-09-18 16:23:43] INFO  WEBrick 1.3.1
+[2018-09-18 16:23:43] INFO  ruby 2.2.3 (2015-08-18) [x86_64-linux]
+[2018-09-18 16:23:43] INFO  WEBrick::HTTPServer#start: pid=6414 port=3000
 
 
 
 
 
+
+
+
+
+cd faucet
+
+192.168.1.151
+
+class Application < Rails::Application
+  config.web_console.whitelisted_ips = '192.168.1.152'
+end
+
+class Application < Rails::Application
+  config.web_console.whitelisted_ips = '10.0.2.2'
+end
+
+
+192.168.1.152
+192.168.1.119
+
+wscat -c ws://192.168.1.151:8090
+88688386@qq.com
+
+
+
+
+
+
+重启流程
+----------------------------------------------------------------------------------------------------------------------------------------------
+cd faucet
+
+配置faucet
+	faucet/config/faucet.yml
+
+	vim config/faucet.yml
+
+运行secret
+	rake secret
+
+	vim config/secrets.yml
+
+运行水龙头服务
+	rails s -b 0.0.0.0
+
+
+
+http://192.168.1.119:3000
+
+http://docs.bitshares.org/testnet/7-faucet.html
+
+
+
+
+ubantu 安装 phpmyadmin
+sudo apt-get install phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+http://192.168.1.120/phpmyadmin/
 

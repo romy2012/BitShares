@@ -1,0 +1,84 @@
+安装 ubuntu 16.04
+
+安装Git
+sudo apt-get install git
+
+安装cmake
+sudo apt install cmake
+
+里面说明需要Boost和OpenSSL的版本需求
+
+安装 openssl
+sudo apt-get install openssl 
+sudo apt-get install libssl-dev
+sudo apt-get install libcurl4-openssl-dev
+
+安装 doxygen
+sudo apt-get install doxygen
+
+安装 dh-autoreconf
+sudo apt-get install dh-autoreconf
+
+安装 npm
+sudo apt install npm
+
+安装 curl
+sudo apt install curl
+
+安装nvm，安装node.js的v9版本：
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.30.2/install.sh | bash
+nvm install v9
+nvm use v9
+
+安装 linuxbrew-wrapper
+sudo apt install linuxbrew-wrapper
+
+安装 rbenv
+sudo apt install rbenv
+
+安装 ruby-build
+sudo apt-get install ruby-build
+
+
+---------------------------------------------------------------------------------------------
+
+安装所有依赖的工具
+sudo apt-get update
+sudo apt-get install autoconf cmake make automake libtool git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev
+
+编译脚本
+git clone https://github.com/bitshares/bitshares-core.git
+cd bitshares-core
+git checkout master
+git submodule update --init --recursive
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
+make
+
+---------------------------------------------------------------------------------------------
+
+
+启动节点
+witness_node --data-dir=data
+
+启动钱包
+cli_wallet --wallet-file=my-wallet.json --chain-id a38a5be60607d2a6d83bf170523e6a5acb2c18518d4071018893b4041ffd4a12 --server-rpc-endpoint=ws://127.0.0.1:8090
+
+钱包常用命令
+
+解锁钱包
+unlock 11111111
+查看账户
+get_account nathan
+查看资产
+list_account_balances nathan
+获取公钥
+suggest_brain_key
+创建账户
+create_account_with_brain_key "BEFLEA WIRABLE CITIFY DARTOID TIREMAN DATER ARIENZO PELLAGE JARKMAN DORLOT REUNION UNTENTY HAVEL KNARK DOITED DISOBEY" romy2018 nathan nathan true
+转账
+transfer nathan romy2018 123456 BTS "here is some cash" true
+
+
+
+
+
